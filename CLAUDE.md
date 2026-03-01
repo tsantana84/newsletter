@@ -106,11 +106,48 @@ Slug is derived from the filename (without `.md`).
 SEND_API_KEY="your-key" ./scripts/send.sh <slug>
 ```
 
+## Testing
+
+45 tests across 6 files. Run with `npm run test:run`.
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `validation.test.ts` | 3 | Email format, length |
+| `rate-limit.test.ts` | 3 | Allow, block, independent keys |
+| `categories.test.ts` | 5 | All categories + unknown fallback |
+| `subscribers.test.ts` | 17 | CRUD, status transitions, name sanitization, error handling |
+| `markdown.test.ts` | 10 | Parsing, listing, path traversal (6 cases) |
+| `email.test.ts` | 7 | Send/batch, Resend errors, throw handling |
+
+When adding new lib functions, add tests in the corresponding `.test.ts` file. Mock Supabase using the chainable mock pattern in `subscribers.test.ts`.
+
 ## Security Notes
 
 - `/api/send` uses `crypto.timingSafeEqual` for API key comparison
 - HTML content is sanitized with DOMPurify before email delivery
-- `getIssueBySlug` has path traversal protection
-- All routes have rate limiting
+- `getIssueBySlug` has path traversal protection (rejects `../`, `/`, `\`)
+- All routes have rate limiting (`subscribeLimiter`, `tokenLimiter`, `sendLimiter`)
 - Subscribe endpoint has CSRF origin checking
-- Security headers configured in `next.config.ts`
+- Security headers in `next.config.ts` (X-Frame-Options, HSTS, nosniff, Referrer-Policy, Permissions-Policy)
+- Error messages are generic — no Supabase internals leak to users
+- Env vars validated at startup (throws on missing)
+- Name input sanitized (trimmed, 100 char max)
+- Token length validated on confirm/unsubscribe endpoints (max 128)
+
+## Deployment
+
+- **Hosting**: Vercel (https://newsletter-nine-roan.vercel.app)
+- **Database**: Supabase project `bhfstizhqqnxgaeswoam`
+- **Deploy**: `vercel --prod`
+- **Logs**: `vercel logs` or Vercel dashboard > Logs
+- **Env vars**: Set via `vercel env add <NAME> production`
+
+## Design System
+
+- **Theme**: Dark mode (`#0F172A` background, `#F8FAFC` text)
+- **Fonts**: Space Grotesk (headings) + DM Sans (body)
+- **Accent**: Green `#22C55E` (CTA buttons, brand highlights)
+- **Categories**: Violet (AI), Blue (SWE), Green (EM)
+- **Icons**: Lucide React (no emojis as icons)
+- **Config**: Tailwind v4 CSS-based (`globals.css`), no `tailwind.config.ts`
+- **Design system doc**: `design-system/tech-newsletter/MASTER.md`
