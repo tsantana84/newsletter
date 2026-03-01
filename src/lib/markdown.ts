@@ -44,7 +44,13 @@ export async function getAllIssues(): Promise<IssueMeta[]> {
 }
 
 export async function getIssueBySlug(slug: string): Promise<Issue | null> {
+  // Prevent path traversal
+  if (!slug || /[/\\]|\.\./.test(slug)) return null;
+
   const filePath = path.join(CONTENT_DIR, `${slug}.md`);
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(path.resolve(CONTENT_DIR))) return null;
+
   if (!fs.existsSync(filePath)) return null;
   const raw = fs.readFileSync(filePath, "utf-8");
   return parseIssue(raw, slug);

@@ -14,6 +14,7 @@ export async function createSubscriber(email: string, name?: string): Promise<Re
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+  const sanitizedName = name ? name.trim().slice(0, 100) : null;
 
   const { data: existing } = await supabase
     .from("subscribers")
@@ -42,7 +43,7 @@ export async function createSubscriber(email: string, name?: string): Promise<Re
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) return { success: false, error: "Failed to process subscription" };
     return { success: true, data: { ...updated, confirmToken: updated.confirm_token } };
   }
 
@@ -51,14 +52,14 @@ export async function createSubscriber(email: string, name?: string): Promise<Re
     .from("subscribers")
     .insert({
       email: normalizedEmail,
-      name: name || null,
+      name: sanitizedName,
       status: "PENDING",
       confirm_token: confirmToken,
     })
     .select()
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return { success: false, error: "Failed to process subscription" };
   return { success: true, data: { ...subscriber, confirmToken: subscriber.confirm_token } };
 }
 
@@ -89,7 +90,7 @@ export async function confirmSubscriber(token: string): Promise<Result> {
     .select()
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return { success: false, error: "Failed to confirm subscription" };
   return { success: true, data: updated };
 }
 
@@ -119,7 +120,7 @@ export async function unsubscribeByToken(token: string): Promise<Result> {
     .select()
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return { success: false, error: "Failed to unsubscribe" };
   return { success: true, data: updated };
 }
 

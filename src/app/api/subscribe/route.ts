@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSubscriber } from "@/lib/subscribers";
 import { sendConfirmationEmail } from "@/lib/email";
-import { subscribeLimiter } from "@/lib/rate-limit";
+import { subscribeLimiter, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for") || "unknown";
+  // CSRF: verify origin matches our site
+  const origin = request.headers.get("origin");
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (origin && siteUrl && !origin.startsWith(siteUrl)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const ip = getClientIp(request);
   if (!subscribeLimiter.check(ip)) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
@@ -16,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, name } = body;
 
-    if (!email) {
+    if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 

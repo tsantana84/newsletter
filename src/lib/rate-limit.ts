@@ -1,3 +1,5 @@
+import { NextRequest } from "next/server";
+
 interface RateLimitOptions {
   windowMs: number;
   maxRequests: number;
@@ -36,8 +38,28 @@ export class RateLimiter {
   }
 }
 
-// Subscribe endpoint: 5 requests per minute per IP
+export function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
+// Subscribe: 5 requests per minute
 export const subscribeLimiter = new RateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 5,
+});
+
+// Confirm/Unsubscribe: 10 requests per minute
+export const tokenLimiter = new RateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+});
+
+// Send: 10 requests per hour
+export const sendLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
 });
