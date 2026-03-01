@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Archive — Inference",
+  title: "Archive | Inference",
   description: "Browse all past Inference issues.",
 };
 

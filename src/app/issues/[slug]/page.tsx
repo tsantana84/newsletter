@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogUrl = `${siteUrl}/api/og?title=${encodeURIComponent(issue.title)}&category=${encodeURIComponent(issue.category)}&readingTime=${encodeURIComponent(issue.readingTime)}`;
 
   return {
-    title: `${issue.title} — Inference`,
+    title: `${issue.title} | Inference`,
     description: issue.description,
     openGraph: {
       title: issue.title,

@@ -43,7 +43,7 @@ export default async function Home({
           </h1>
 
           <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto leading-relaxed">
-            How engineers and engineering leaders leverage AI to ship better software, faster. Deep-dives and curated insights — no fluff.
+            How engineers and engineering leaders leverage AI to ship better software, faster. Original deep dives and curated insights, twice a week.
           </p>
 
           <div className="flex justify-center">
@@ -74,7 +74,7 @@ export default async function Home({
               <Users className="h-5 w-5 text-green-400" />
             </div>
             <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">AI + Leadership</h3>
-            <p className="text-sm text-slate-500">Leading teams in the AI era — strategy, adoption, and org transformation.</p>
+            <p className="text-sm text-slate-500">Leading teams in the AI era. Strategy, adoption, and org transformation.</p>
           </div>
         </div>
       </section>
@@ -100,7 +100,7 @@ export default async function Home({
       <footer className="border-t border-slate-800 py-12">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <p className="text-sm text-slate-600">
-            Inference — Built for engineers who ship.
+            Inference. Built for engineers who ship.
           </p>
         </div>
       </footer>

@@ -15,7 +15,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Inference — AI-powered Software Engineering & Management",
+  title: "Inference | AI-powered Software Engineering & Management",
   description:
     "A twice-weekly newsletter for engineers and tech leads on leveraging AI to ship better software, faster.",
   metadataBase: new URL(
