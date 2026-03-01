@@ -34,10 +34,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.data?.confirmToken) {
-      await sendConfirmationEmail({
+      const emailResult = await sendConfirmationEmail({
         to: result.data.email,
         confirmToken: result.data.confirmToken,
       });
+      if (!emailResult.success) {
+        console.error("Failed to send confirmation email:", emailResult.error);
+      }
     }
 
     return NextResponse.json(

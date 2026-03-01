@@ -1,15 +1,10 @@
 import { getIssueBySlug, getAllIssues } from "@/lib/markdown";
+import { getCategoryStyle } from "@/lib/categories";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock } from "lucide-react";
 import type { Metadata } from "next";
-
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-  AI: { bg: "bg-violet-500/10", text: "text-violet-400", dot: "bg-violet-400" },
-  SOFTWARE_ENGINEERING: { bg: "bg-blue-500/10", text: "text-blue-400", dot: "bg-blue-400" },
-  ENGINEERING_MANAGEMENT: { bg: "bg-green-500/10", text: "text-green-400", dot: "bg-green-400" },
-};
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -36,7 +31,7 @@ export default async function IssuePage({ params }: Props) {
 
   if (!issue) notFound();
 
-  const style = CATEGORY_STYLES[issue.category] || { bg: "bg-slate-500/10", text: "text-slate-400", dot: "bg-slate-400" };
+  const style = getCategoryStyle(issue.category);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getActiveSubscribers } from "@/lib/subscribers";
 import { sendNewsletter } from "@/lib/email";
 import { getIssueBySlug } from "@/lib/markdown";
-import { supabase } from "@/lib/db";
-import { sendLimiter } from "@/lib/rate-limit";
+import { trackIssueSent } from "@/lib/issues";
+import { sendLimiter, getClientIp } from "@/lib/rate-limit";
 import { marked } from "marked";
 import crypto from "crypto";
 import DOMPurify from "isomorphic-dompurify";
@@ -19,7 +19,7 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = getClientIp(request);
 
   if (!sendLimiter.check(ip)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -36,72 +36,47 @@ export async function POST(request: NextRequest) {
     const { slug } = body;
 
     if (!slug || typeof slug !== "string" || !SLUG_REGEX.test(slug)) {
-      return NextResponse.json(
-        { error: "Invalid issue slug" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid issue slug" }, { status: 400 });
     }
 
     const issue = await getIssueBySlug(slug);
-
     if (!issue) {
       return NextResponse.json({ error: "Issue not found" }, { status: 404 });
     }
 
-    const subscribers = await getActiveSubscribers();
-
-    if (subscribers.length === 0) {
-      return NextResponse.json(
-        { error: "No active subscribers" },
-        { status: 400 }
-      );
+    const subscribersResult = await getActiveSubscribers();
+    if (!subscribersResult.success) {
+      return NextResponse.json({ error: "Failed to fetch subscribers" }, { status: 500 });
+    }
+    if (subscribersResult.data.length === 0) {
+      return NextResponse.json({ error: "No active subscribers" }, { status: 400 });
     }
 
     const rawHtml = await marked(issue.content);
     const htmlContent = DOMPurify.sanitize(rawHtml, {
-      ALLOWED_TAGS: ["h1","h2","h3","h4","h5","h6","p","a","ul","ol","li",
-        "strong","em","code","pre","blockquote","hr","br","img","table",
-        "thead","tbody","tr","th","td"],
-      ALLOWED_ATTR: ["href","src","alt","title"],
+      ALLOWED_TAGS: [
+        "h1", "h2", "h3", "h4", "h5", "h6", "p", "a", "ul", "ol", "li",
+        "strong", "em", "code", "pre", "blockquote", "hr", "br", "img",
+        "table", "thead", "tbody", "tr", "th", "td",
+      ],
+      ALLOWED_ATTR: ["href", "src", "alt", "title"],
     });
 
     const result = await sendNewsletter({
       subject: issue.title,
+      slug,
       htmlContent,
-      subscribers,
+      subscribers: subscribersResult.data,
     });
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    // Track that this issue was sent
-    const { data: existingIssue } = await supabase
-      .from("issues")
-      .select("id")
-      .eq("slug", slug)
-      .single();
-
-    if (existingIssue) {
-      await supabase
-        .from("issues")
-        .update({ sent_at: new Date().toISOString() })
-        .eq("slug", slug);
-    } else {
-      await supabase
-        .from("issues")
-        .insert({
-          slug,
-          title: issue.title,
-          description: issue.description,
-          category: issue.category,
-          published_at: new Date(issue.date).toISOString(),
-          sent_at: new Date().toISOString(),
-        });
-    }
+    await trackIssueSent(issue);
 
     return NextResponse.json({
-      message: `Newsletter sent to ${subscribers.length} subscribers`,
+      message: `Newsletter sent to ${subscribersResult.data.length} subscribers`,
     });
   } catch {
     return NextResponse.json(

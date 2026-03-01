@@ -1,15 +1,10 @@
 import Link from "next/link";
 import { Clock, ArrowUpRight } from "lucide-react";
 import type { IssueMeta } from "@/lib/markdown";
-
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-  AI: { bg: "bg-violet-500/10", text: "text-violet-400", dot: "bg-violet-400" },
-  SOFTWARE_ENGINEERING: { bg: "bg-blue-500/10", text: "text-blue-400", dot: "bg-blue-400" },
-  ENGINEERING_MANAGEMENT: { bg: "bg-green-500/10", text: "text-green-400", dot: "bg-green-400" },
-};
+import { getCategoryStyle } from "@/lib/categories";
 
 export function IssueCard({ issue }: { issue: IssueMeta }) {
-  const style = CATEGORY_STYLES[issue.category] || { bg: "bg-slate-500/10", text: "text-slate-400", dot: "bg-slate-400" };
+  const style = getCategoryStyle(issue.category);
 
   return (
     <Link
