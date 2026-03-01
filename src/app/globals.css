@@ -1,27 +1,79 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --font-heading: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0F172A;
+  color: #F8FAFC;
+  font-family: var(--font-body);
+}
+
+/* Prose overrides for dark mode */
+.prose {
+  --tw-prose-body: #CBD5E1;
+  --tw-prose-headings: #F8FAFC;
+  --tw-prose-links: #22C55E;
+  --tw-prose-bold: #F8FAFC;
+  --tw-prose-code: #E2E8F0;
+  --tw-prose-pre-bg: #1E293B;
+  --tw-prose-pre-code: #E2E8F0;
+  --tw-prose-hr: #334155;
+  --tw-prose-quotes: #94A3B8;
+  --tw-prose-quote-borders: #334155;
+  --tw-prose-counters: #94A3B8;
+  --tw-prose-bullets: #64748B;
+  --tw-prose-th-borders: #334155;
+  --tw-prose-td-borders: #1E293B;
+}
+
+.prose pre {
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.prose code {
+  background-color: #1E293B;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.875em;
+}
+
+.prose a {
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.prose a:hover {
+  text-decoration: underline;
+}
+
+/* Grid background pattern for hero */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(51, 65, 85, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 65, 85, 0.3) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Glow effect for CTA */
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+/* Smooth focus ring */
+*:focus-visible {
+  outline: 2px solid #22C55E;
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

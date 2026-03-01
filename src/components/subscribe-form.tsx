@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 
 export function SubscribeForm() {
   const [email, setEmail] = useState("");
@@ -35,30 +36,45 @@ export function SubscribeForm() {
     }
   }
 
+  if (status === "success") {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 px-6 py-4 max-w-md">
+        <Check className="h-5 w-5 text-green-400 shrink-0" />
+        <p className="text-green-300 text-sm">{message}</p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:gap-2 w-full max-w-md">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@example.com"
-        required
-        disabled={status === "loading"}
-        className="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
-      />
-      <button
-        type="submit"
-        disabled={status === "loading"}
-        className="rounded-lg bg-black px-6 py-3 text-base font-medium text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
-      >
-        {status === "loading" ? "Subscribing..." : "Subscribe"}
-      </button>
-      {status === "success" && (
-        <p className="text-green-600 text-sm sm:col-span-2">{message}</p>
-      )}
+    <div className="w-full max-w-md">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          required
+          disabled={status === "loading"}
+          className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-slate-50 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none disabled:opacity-50 transition-colors duration-200"
+        />
+        <button
+          type="submit"
+          disabled={status === "loading"}
+          className="cursor-pointer rounded-xl bg-green-500 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-green-400 focus:glow-green disabled:opacity-50 transition-all duration-200 flex items-center gap-2 shrink-0"
+        >
+          {status === "loading" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              Subscribe
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </button>
+      </form>
       {status === "error" && (
-        <p className="text-red-600 text-sm sm:col-span-2">{message}</p>
+        <p className="mt-3 text-red-400 text-sm">{message}</p>
       )}
-    </form>
+    </div>
   );
 }
