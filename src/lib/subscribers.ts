@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { supabase } from "./db";
 import { validateEmail } from "./validation";
 import crypto from "crypto";
 
@@ -8,60 +8,66 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-export async function createSubscriber(
-  email: string,
-  name?: string
-): Promise<Result> {
+export async function createSubscriber(email: string, name?: string): Promise<Result> {
   if (!validateEmail(email)) {
     return { success: false, error: "Invalid email address" };
   }
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  const existing = await prisma.subscriber.findUnique({
-    where: { email: normalizedEmail },
-  });
+  const { data: existing } = await supabase
+    .from("subscribers")
+    .select("*")
+    .eq("email", normalizedEmail)
+    .single();
 
   if (existing) {
     if (existing.status === "ACTIVE") {
       return { success: false, error: "Already subscribed" };
     }
     if (existing.status === "PENDING") {
-      return {
-        success: false,
-        error: "Confirmation email already sent. Check your inbox.",
-      };
+      return { success: false, error: "Confirmation email already sent. Check your inbox." };
     }
     // UNSUBSCRIBED — allow re-subscribe
     const confirmToken = generateToken();
-    const updated = await prisma.subscriber.update({
-      where: { email: normalizedEmail },
-      data: {
+    const { data: updated, error } = await supabase
+      .from("subscribers")
+      .update({
         status: "PENDING",
-        confirmToken,
-        unsubscribedAt: null,
-      },
-    });
-    return { success: true, data: updated };
+        confirm_token: confirmToken,
+        unsubscribed_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("email", normalizedEmail)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: { ...updated, confirmToken: updated.confirm_token } };
   }
 
   const confirmToken = generateToken();
-  const subscriber = await prisma.subscriber.create({
-    data: {
+  const { data: subscriber, error } = await supabase
+    .from("subscribers")
+    .insert({
       email: normalizedEmail,
       name: name || null,
       status: "PENDING",
-      confirmToken,
-    },
-  });
+      confirm_token: confirmToken,
+    })
+    .select()
+    .single();
 
-  return { success: true, data: subscriber };
+  if (error) return { success: false, error: error.message };
+  return { success: true, data: { ...subscriber, confirmToken: subscriber.confirm_token } };
 }
 
 export async function confirmSubscriber(token: string): Promise<Result> {
-  const subscriber = await prisma.subscriber.findUnique({
-    where: { confirmToken: token },
-  });
+  const { data: subscriber } = await supabase
+    .from("subscribers")
+    .select("*")
+    .eq("confirm_token", token)
+    .single();
 
   if (!subscriber) {
     return { success: false, error: "Invalid or expired confirmation link" };
@@ -71,22 +77,28 @@ export async function confirmSubscriber(token: string): Promise<Result> {
     return { success: true, data: subscriber };
   }
 
-  const updated = await prisma.subscriber.update({
-    where: { confirmToken: token },
-    data: {
+  const { data: updated, error } = await supabase
+    .from("subscribers")
+    .update({
       status: "ACTIVE",
-      confirmToken: null,
-      confirmedAt: new Date(),
-    },
-  });
+      confirm_token: null,
+      confirmed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("confirm_token", token)
+    .select()
+    .single();
 
+  if (error) return { success: false, error: error.message };
   return { success: true, data: updated };
 }
 
 export async function unsubscribeByToken(token: string): Promise<Result> {
-  const subscriber = await prisma.subscriber.findUnique({
-    where: { unsubscribeToken: token },
-  });
+  const { data: subscriber } = await supabase
+    .from("subscribers")
+    .select("*")
+    .eq("unsubscribe_token", token)
+    .single();
 
   if (!subscriber) {
     return { success: false, error: "Invalid unsubscribe link" };
@@ -96,20 +108,31 @@ export async function unsubscribeByToken(token: string): Promise<Result> {
     return { success: true, data: subscriber };
   }
 
-  const updated = await prisma.subscriber.update({
-    where: { unsubscribeToken: token },
-    data: {
+  const { data: updated, error } = await supabase
+    .from("subscribers")
+    .update({
       status: "UNSUBSCRIBED",
-      unsubscribedAt: new Date(),
-    },
-  });
+      unsubscribed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("unsubscribe_token", token)
+    .select()
+    .single();
 
+  if (error) return { success: false, error: error.message };
   return { success: true, data: updated };
 }
 
 export async function getActiveSubscribers() {
-  return prisma.subscriber.findMany({
-    where: { status: "ACTIVE" },
-    select: { email: true, name: true, unsubscribeToken: true },
-  });
+  const { data, error } = await supabase
+    .from("subscribers")
+    .select("email, name, unsubscribe_token")
+    .eq("status", "ACTIVE");
+
+  if (error) return [];
+  return data.map((s) => ({
+    email: s.email,
+    name: s.name,
+    unsubscribeToken: s.unsubscribe_token,
+  }));
 }

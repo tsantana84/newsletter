@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getActiveSubscribers } from "@/lib/subscribers";
 import { sendNewsletter } from "@/lib/email";
 import { getIssueBySlug } from "@/lib/markdown";
-import { prisma } from "@/lib/db";
+import { supabase } from "@/lib/db";
 import { marked } from "marked";
 
 export async function POST(request: NextRequest) {
@@ -51,18 +51,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Track that this issue was sent
-    await prisma.issue.upsert({
-      where: { slug },
-      update: { sentAt: new Date() },
-      create: {
-        slug,
-        title: issue.title,
-        description: issue.description,
-        category: issue.category,
-        publishedAt: new Date(issue.date),
-        sentAt: new Date(),
-      },
-    });
+    const { data: existingIssue } = await supabase
+      .from("issues")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+
+    if (existingIssue) {
+      await supabase
+        .from("issues")
+        .update({ sent_at: new Date().toISOString() })
+        .eq("slug", slug);
+    } else {
+      await supabase
+        .from("issues")
+        .insert({
+          slug,
+          title: issue.title,
+          description: issue.description,
+          category: issue.category,
+          published_at: new Date(issue.date).toISOString(),
+          sent_at: new Date().toISOString(),
+        });
+    }
 
     return NextResponse.json({
       message: `Newsletter sent to ${subscribers.length} subscribers`,

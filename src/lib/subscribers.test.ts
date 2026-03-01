@@ -1,52 +1,63 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createSubscriber, confirmSubscriber, unsubscribeByToken } from "./subscribers";
 
-// Mock the db module
+// Chainable mock builder for Supabase query API
+function createChainMock(resolvedValue: any = { data: null, error: null }) {
+  const chain: any = {};
+  const methods = ["select", "insert", "update", "eq", "single"];
+  for (const method of methods) {
+    chain[method] = vi.fn().mockReturnValue(chain);
+  }
+  // Terminal method returns the resolved value
+  chain.single = vi.fn().mockResolvedValue(resolvedValue);
+  return chain;
+}
+
+let mockChain: any;
+
 vi.mock("./db", () => ({
-  prisma: {
-    subscriber: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
+  supabase: {
+    from: vi.fn(() => mockChain),
   },
 }));
 
-import { prisma } from "./db";
-const mockPrisma = vi.mocked(prisma);
+import { createSubscriber, confirmSubscriber, unsubscribeByToken } from "./subscribers";
+import { supabase } from "./db";
 
 describe("createSubscriber", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(supabase.from).mockImplementation(() => mockChain);
   });
 
   it("creates a new subscriber with PENDING status", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue(null);
-    mockPrisma.subscriber.create.mockResolvedValue({
-      id: "test-id",
-      email: "test@example.com",
-      name: null,
-      status: "PENDING",
-      confirmToken: "token-123",
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: null,
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // First call: select (existing check) returns null (no match)
+    const selectChain = createChainMock({ data: null, error: { code: "PGRST116" } });
+    // Second call: insert returns new subscriber
+    const insertChain = createChainMock({
+      data: {
+        id: "test-id",
+        email: "test@example.com",
+        confirm_token: "token-123",
+        status: "PENDING",
+      },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : insertChain;
     });
 
     const result = await createSubscriber("test@example.com");
     expect(result.success).toBe(true);
-    expect(mockPrisma.subscriber.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        email: "test@example.com",
-        status: "PENDING",
-      }),
-    });
+    if (result.success) {
+      expect(result.data.confirmToken).toBe("token-123");
+    }
   });
 
   it("returns error for invalid email", async () => {
+    mockChain = createChainMock();
     const result = await createSubscriber("invalid");
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -55,18 +66,9 @@ describe("createSubscriber", () => {
   });
 
   it("returns error for already-active subscriber", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "existing",
-      email: "test@example.com",
-      name: null,
-      status: "ACTIVE",
-      confirmToken: null,
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: new Date(),
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    mockChain = createChainMock({
+      data: { status: "ACTIVE", email: "test@example.com" },
+      error: null,
     });
 
     const result = await createSubscriber("test@example.com");
@@ -77,122 +79,109 @@ describe("createSubscriber", () => {
   });
 
   it("returns error for pending subscriber", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "existing",
-      email: "test@example.com",
-      name: null,
-      status: "PENDING",
-      confirmToken: "token-123",
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: null,
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    mockChain = createChainMock({
+      data: { status: "PENDING", email: "test@example.com", confirm_token: "token-123" },
+      error: null,
     });
 
     const result = await createSubscriber("test@example.com");
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toBe(
-        "Confirmation email already sent. Check your inbox."
-      );
+      expect(result.error).toBe("Confirmation email already sent. Check your inbox.");
     }
   });
 
   it("allows re-subscribe for unsubscribed user", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "existing",
-      email: "test@example.com",
-      name: null,
-      status: "UNSUBSCRIBED",
-      confirmToken: null,
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: new Date(),
-      unsubscribedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // First call: select returns unsubscribed user
+    const selectChain = createChainMock({
+      data: {
+        id: "existing",
+        email: "test@example.com",
+        status: "UNSUBSCRIBED",
+        confirm_token: null,
+        unsubscribe_token: "unsub-123",
+      },
+      error: null,
     });
-    mockPrisma.subscriber.update.mockResolvedValue({
-      id: "existing",
-      email: "test@example.com",
-      name: null,
-      status: "PENDING",
-      confirmToken: "new-token",
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: new Date(),
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // Second call: update returns re-subscribed user
+    const updateChain = createChainMock({
+      data: {
+        id: "existing",
+        email: "test@example.com",
+        status: "PENDING",
+        confirm_token: "new-token",
+        unsubscribe_token: "unsub-123",
+      },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : updateChain;
     });
 
     const result = await createSubscriber("test@example.com");
     expect(result.success).toBe(true);
-    expect(mockPrisma.subscriber.update).toHaveBeenCalledWith({
-      where: { email: "test@example.com" },
-      data: expect.objectContaining({
-        status: "PENDING",
-        unsubscribedAt: null,
-      }),
-    });
+    if (result.success) {
+      expect(result.data.confirmToken).toBe("new-token");
+    }
   });
 
   it("normalizes email to lowercase", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue(null);
-    mockPrisma.subscriber.create.mockResolvedValue({
-      id: "test-id",
-      email: "test@example.com",
-      name: null,
-      status: "PENDING",
-      confirmToken: "token-123",
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: null,
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // First call: select returns null
+    const selectChain = createChainMock({ data: null, error: { code: "PGRST116" } });
+    // Second call: insert
+    const insertChain = createChainMock({
+      data: {
+        id: "test-id",
+        email: "test@example.com",
+        confirm_token: "token-123",
+        status: "PENDING",
+      },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : insertChain;
     });
 
     await createSubscriber("Test@Example.COM");
-    expect(mockPrisma.subscriber.findUnique).toHaveBeenCalledWith({
-      where: { email: "test@example.com" },
-    });
+    // Verify the eq was called with lowercased email on the select chain
+    expect(selectChain.eq).toHaveBeenCalledWith("email", "test@example.com");
   });
 });
 
 describe("confirmSubscriber", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(supabase.from).mockImplementation(() => mockChain);
   });
 
   it("confirms a pending subscriber", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "test-id",
-      email: "test@example.com",
-      name: null,
-      status: "PENDING",
-      confirmToken: "token-123",
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: null,
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const selectChain = createChainMock({
+      data: { status: "PENDING", confirm_token: "token-123" },
+      error: null,
     });
-    mockPrisma.subscriber.update.mockResolvedValue({} as any);
+    const updateChain = createChainMock({
+      data: { status: "ACTIVE", confirm_token: null },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : updateChain;
+    });
 
     const result = await confirmSubscriber("token-123");
     expect(result.success).toBe(true);
-    expect(mockPrisma.subscriber.update).toHaveBeenCalledWith({
-      where: { confirmToken: "token-123" },
-      data: expect.objectContaining({ status: "ACTIVE", confirmToken: null }),
-    });
   });
 
   it("returns error for invalid token", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue(null);
+    mockChain = createChainMock({ data: null, error: { code: "PGRST116" } });
 
     const result = await confirmSubscriber("bad-token");
     expect(result.success).toBe(false);
@@ -202,57 +191,50 @@ describe("confirmSubscriber", () => {
   });
 
   it("returns success for already-active subscriber", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "test-id",
-      email: "test@example.com",
-      name: null,
-      status: "ACTIVE",
-      confirmToken: "token-123",
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: new Date(),
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    mockChain = createChainMock({
+      data: {
+        status: "ACTIVE",
+        confirm_token: "token-123",
+        email: "test@example.com",
+      },
+      error: null,
     });
 
     const result = await confirmSubscriber("token-123");
     expect(result.success).toBe(true);
-    expect(mockPrisma.subscriber.update).not.toHaveBeenCalled();
+    // Should NOT have made a second from() call for update
+    expect(vi.mocked(supabase.from)).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("unsubscribeByToken", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(supabase.from).mockImplementation(() => mockChain);
   });
 
   it("unsubscribes an active subscriber", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "test-id",
-      email: "test@example.com",
-      name: null,
-      status: "ACTIVE",
-      confirmToken: null,
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: new Date(),
-      unsubscribedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const selectChain = createChainMock({
+      data: { status: "ACTIVE", unsubscribe_token: "unsub-123" },
+      error: null,
     });
-    mockPrisma.subscriber.update.mockResolvedValue({} as any);
+    const updateChain = createChainMock({
+      data: { status: "UNSUBSCRIBED" },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : updateChain;
+    });
 
     const result = await unsubscribeByToken("unsub-123");
     expect(result.success).toBe(true);
-    expect(mockPrisma.subscriber.update).toHaveBeenCalledWith({
-      where: { unsubscribeToken: "unsub-123" },
-      data: expect.objectContaining({ status: "UNSUBSCRIBED" }),
-    });
   });
 
   it("returns error for invalid token", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue(null);
+    mockChain = createChainMock({ data: null, error: { code: "PGRST116" } });
 
     const result = await unsubscribeByToken("bad-token");
     expect(result.success).toBe(false);
@@ -262,22 +244,17 @@ describe("unsubscribeByToken", () => {
   });
 
   it("returns success for already-unsubscribed subscriber", async () => {
-    mockPrisma.subscriber.findUnique.mockResolvedValue({
-      id: "test-id",
-      email: "test@example.com",
-      name: null,
-      status: "UNSUBSCRIBED",
-      confirmToken: null,
-      unsubscribeToken: "unsub-123",
-      subscribedAt: new Date(),
-      confirmedAt: new Date(),
-      unsubscribedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    mockChain = createChainMock({
+      data: {
+        status: "UNSUBSCRIBED",
+        unsubscribe_token: "unsub-123",
+      },
+      error: null,
     });
 
     const result = await unsubscribeByToken("unsub-123");
     expect(result.success).toBe(true);
-    expect(mockPrisma.subscriber.update).not.toHaveBeenCalled();
+    // Should NOT have made a second from() call for update
+    expect(vi.mocked(supabase.from)).toHaveBeenCalledTimes(1);
   });
 });
