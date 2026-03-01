@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSubscriber } from "@/lib/subscribers";
 import { sendConfirmationEmail } from "@/lib/email";
+import { subscribeLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") || "unknown";
+  if (!subscribeLimiter.check(ip)) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, name } = body;
