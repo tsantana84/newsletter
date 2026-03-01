@@ -1,6 +1,6 @@
 # Inference Newsletter
 
-A self-hosted newsletter system for senior engineers covering AI, Software Engineering, and Engineering Management.
+A self-hosted newsletter for engineers and engineering leaders on leveraging AI to ship better software, faster. AI is the central theme — covering AI-assisted development, production AI systems, and leading teams in the AI era.
 
 ## Stack
 

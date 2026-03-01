@@ -15,16 +15,16 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Inference — AI, Software Engineering & Engineering Management",
+  title: "Inference — AI-powered Software Engineering & Management",
   description:
-    "A twice-weekly newsletter for senior engineers and tech leads covering AI, software engineering, and engineering management.",
+    "A twice-weekly newsletter for engineers and tech leads on leveraging AI to ship better software, faster.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
   openGraph: {
     title: "Inference",
     description:
-      "A twice-weekly newsletter for senior engineers and tech leads. Deep-dives and curated insights — no fluff.",
+      "How engineers and engineering leaders leverage AI to ship better software, faster.",
     type: "website",
     images: [
       {
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Inference",
     description:
-      "A twice-weekly newsletter for senior engineers and tech leads. Deep-dives and curated insights — no fluff.",
+      "How engineers and engineering leaders leverage AI to ship better software, faster.",
     images: [
       "/api/og?title=Inference&category=AI&readingTime=Twice%20weekly",
     ],

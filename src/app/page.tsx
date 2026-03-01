@@ -39,11 +39,11 @@ export default async function Home({
           <h1 className="font-[family-name:var(--font-heading)] text-5xl sm:text-6xl font-bold tracking-tight text-slate-50 mb-6 leading-[1.1]">
             <span className="text-green-400">Inference</span>
             <br />
-            <span className="text-3xl sm:text-4xl text-slate-300">AI, Software Engineering &amp; Engineering Management</span>
+            <span className="text-3xl sm:text-4xl text-slate-300">AI-powered Software Engineering &amp; Management</span>
           </h1>
 
           <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto leading-relaxed">
-            Deep-dives and curated insights for tech leads who want signal over noise. No fluff, no filler.
+            How engineers and engineering leaders leverage AI to ship better software, faster. Deep-dives and curated insights — no fluff.
           </p>
 
           <div className="flex justify-center">
@@ -59,22 +59,22 @@ export default async function Home({
             <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3">
               <Zap className="h-5 w-5 text-violet-400" />
             </div>
-            <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">Artificial Intelligence</h3>
-            <p className="text-sm text-slate-500">Agents, models, tooling, and real-world applications.</p>
+            <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">AI &amp; LLMs</h3>
+            <p className="text-sm text-slate-500">Agents, models, prompting, and production AI systems.</p>
           </div>
           <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-5">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3">
               <BookOpen className="h-5 w-5 text-blue-400" />
             </div>
-            <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">Software Engineering</h3>
-            <p className="text-sm text-slate-500">Architecture, best practices, and developer tooling.</p>
+            <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">AI + Engineering</h3>
+            <p className="text-sm text-slate-500">AI-assisted development, coding agents, and evolving workflows.</p>
           </div>
           <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-5">
             <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mb-3">
               <Users className="h-5 w-5 text-green-400" />
             </div>
-            <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">Engineering Management</h3>
-            <p className="text-sm text-slate-500">Leadership, team scaling, and org design.</p>
+            <h3 className="font-[family-name:var(--font-heading)] font-semibold text-slate-50 mb-1">AI + Leadership</h3>
+            <p className="text-sm text-slate-500">Leading teams in the AI era — strategy, adoption, and org transformation.</p>
           </div>
         </div>
       </section>
