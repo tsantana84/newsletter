@@ -20,10 +20,10 @@ export function ConfirmationEmail({ confirmUrl }: ConfirmationEmailProps) {
       <Body style={body}>
         <Container style={container}>
           <Section>
-            <Text style={heading}>Confirm your subscription</Text>
+            <Text style={heading}>Confirm your subscription to Inference</Text>
             <Text style={text}>
-              Thanks for subscribing! Click the link below to confirm your email
-              address and start receiving the newsletter.
+              Thanks for subscribing to Inference! Click the link below to confirm
+              your email address and start receiving issues.
             </Text>
             <Link href={confirmUrl} style={button}>
               Confirm Subscription

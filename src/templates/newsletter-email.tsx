@@ -37,7 +37,7 @@ export function NewsletterEmail({
               <Link href={unsubscribeUrl}>Unsubscribe</Link>
             </Text>
             <Text style={footer}>
-              You received this because you subscribed to the newsletter.
+              You received this because you subscribed to Inference.
             </Text>
           </Section>
         </Container>

@@ -37,9 +37,9 @@ export default async function Home({
           </div>
 
           <h1 className="font-[family-name:var(--font-heading)] text-5xl sm:text-6xl font-bold tracking-tight text-slate-50 mb-6 leading-[1.1]">
-            AI, Software Engineering
+            <span className="text-green-400">Inference</span>
             <br />
-            <span className="text-green-400">&amp; Engineering Management</span>
+            <span className="text-3xl sm:text-4xl text-slate-300">AI, Software Engineering &amp; Engineering Management</span>
           </h1>
 
           <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto leading-relaxed">
@@ -100,7 +100,7 @@ export default async function Home({
       <footer className="border-t border-slate-800 py-12">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <p className="text-sm text-slate-600">
-            Built for engineers who ship.
+            Inference — Built for engineers who ship.
           </p>
         </div>
       </footer>

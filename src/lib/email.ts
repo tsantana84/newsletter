@@ -26,7 +26,7 @@ export async function sendConfirmationEmail({
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: "Confirm your subscription",
+      subject: "Confirm your subscription to Inference",
       html,
     });
     if (error) return { success: false, error: error.message };

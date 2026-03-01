@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const issue = await getIssueBySlug(slug);
   if (!issue) return {};
   return {
-    title: `${issue.title} — Newsletter`,
+    title: `${issue.title} — Inference`,
     description: issue.description,
   };
 }

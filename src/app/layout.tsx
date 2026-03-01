@@ -15,7 +15,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Tech Newsletter — AI, Software Engineering & Engineering Management",
+  title: "Inference — AI, Software Engineering & Engineering Management",
   description:
     "A twice-weekly newsletter for senior engineers and tech leads covering AI, software engineering, and engineering management.",
 };
