@@ -19,9 +19,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const issue = await getIssueBySlug(slug);
   if (!issue) return {};
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const ogUrl = `${siteUrl}/api/og?title=${encodeURIComponent(issue.title)}&category=${encodeURIComponent(issue.category)}&readingTime=${encodeURIComponent(issue.readingTime)}`;
+
   return {
     title: `${issue.title} — Inference`,
     description: issue.description,
+    openGraph: {
+      title: issue.title,
+      description: issue.description,
+      type: "article",
+      url: `${siteUrl}/issues/${slug}`,
+      images: [{ url: ogUrl, width: 1200, height: 630, alt: issue.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: issue.title,
+      description: issue.description,
+      images: [ogUrl],
+    },
   };
 }
 
