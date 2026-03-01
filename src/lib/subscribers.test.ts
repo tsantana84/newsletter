@@ -20,7 +20,7 @@ vi.mock("./db", () => ({
   },
 }));
 
-import { createSubscriber, confirmSubscriber, unsubscribeByToken } from "./subscribers";
+import { createSubscriber, confirmSubscriber, unsubscribeByToken, getActiveSubscribers } from "./subscribers";
 import { supabase } from "./db";
 
 describe("createSubscriber", () => {
@@ -256,5 +256,130 @@ describe("unsubscribeByToken", () => {
     expect(result.success).toBe(true);
     // Should NOT have made a second from() call for update
     expect(vi.mocked(supabase.from)).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("createSubscriber — name sanitization", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(supabase.from).mockImplementation(() => mockChain);
+  });
+
+  it("trims and limits name to 100 characters", async () => {
+    const longName = "A".repeat(200);
+    const selectChain = createChainMock({ data: null, error: { code: "PGRST116" } });
+    const insertChain = createChainMock({
+      data: { id: "id", email: "test@example.com", confirm_token: "tok", status: "PENDING" },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : insertChain;
+    });
+
+    await createSubscriber("test@example.com", `  ${longName}  `);
+
+    // Verify the insert was called with trimmed + truncated name
+    const insertCall = insertChain.insert.mock.calls[0]?.[0];
+    expect(insertCall?.name).toBe("A".repeat(100));
+  });
+
+  it("sets name to null when empty string provided", async () => {
+    const selectChain = createChainMock({ data: null, error: { code: "PGRST116" } });
+    const insertChain = createChainMock({
+      data: { id: "id", email: "test@example.com", confirm_token: "tok", status: "PENDING" },
+      error: null,
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : insertChain;
+    });
+
+    await createSubscriber("test@example.com", "");
+
+    const insertCall = insertChain.insert.mock.calls[0]?.[0];
+    expect(insertCall?.name).toBeNull();
+  });
+});
+
+describe("createSubscriber — database error handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(supabase.from).mockImplementation(() => mockChain);
+  });
+
+  it("returns generic error when insert fails", async () => {
+    const selectChain = createChainMock({ data: null, error: { code: "PGRST116" } });
+    const insertChain = createChainMock({
+      data: null,
+      error: { message: "duplicate key violation on subscribers_email_key" },
+    });
+
+    let callCount = 0;
+    vi.mocked(supabase.from).mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? selectChain : insertChain;
+    });
+
+    const result = await createSubscriber("test@example.com");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Should NOT leak internal DB error
+      expect(result.error).toBe("Failed to process subscription");
+      expect(result.error).not.toContain("duplicate key");
+    }
+  });
+});
+
+describe("getActiveSubscribers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(supabase.from).mockImplementation(() => mockChain);
+  });
+
+  it("returns mapped subscribers on success", async () => {
+    // Need a chain that resolves without .single()
+    const chain: any = {};
+    chain.select = vi.fn().mockReturnValue(chain);
+    chain.eq = vi.fn().mockResolvedValue({
+      data: [
+        { email: "a@test.com", name: "Alice", unsubscribe_token: "tok-a" },
+        { email: "b@test.com", name: null, unsubscribe_token: "tok-b" },
+      ],
+      error: null,
+    });
+    vi.mocked(supabase.from).mockReturnValue(chain);
+
+    const result = await getActiveSubscribers();
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0]).toEqual({
+        email: "a@test.com",
+        name: "Alice",
+        unsubscribeToken: "tok-a",
+      });
+      expect(result.data[1].unsubscribeToken).toBe("tok-b");
+    }
+  });
+
+  it("returns error when database query fails", async () => {
+    const chain: any = {};
+    chain.select = vi.fn().mockReturnValue(chain);
+    chain.eq = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: "connection refused" },
+    });
+    vi.mocked(supabase.from).mockReturnValue(chain);
+
+    const result = await getActiveSubscribers();
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("Failed to fetch subscribers");
+    }
   });
 });

@@ -39,4 +39,43 @@ describe("getIssueBySlug", () => {
     const result = await getIssueBySlug("non-existent-slug-12345");
     expect(result).toBeNull();
   });
+
+  it("returns the issue for an existing slug", async () => {
+    const result = await getIssueBySlug("2026-03-03-welcome");
+    expect(result).not.toBeNull();
+    expect(result?.title).toBe("Welcome to the Newsletter");
+    expect(result?.category).toBe("AI");
+    expect(result?.content).toContain("# Welcome");
+  });
+
+  // Path traversal protection tests
+  it("rejects slugs with ../", async () => {
+    const result = await getIssueBySlug("../../etc/passwd");
+    expect(result).toBeNull();
+  });
+
+  it("rejects slugs with ..\\", async () => {
+    const result = await getIssueBySlug("..\\..\\etc\\passwd");
+    expect(result).toBeNull();
+  });
+
+  it("rejects slugs with forward slashes", async () => {
+    const result = await getIssueBySlug("foo/bar");
+    expect(result).toBeNull();
+  });
+
+  it("rejects slugs with backslashes", async () => {
+    const result = await getIssueBySlug("foo\\bar");
+    expect(result).toBeNull();
+  });
+
+  it("rejects empty slug", async () => {
+    const result = await getIssueBySlug("");
+    expect(result).toBeNull();
+  });
+
+  it("rejects slug with double dots", async () => {
+    const result = await getIssueBySlug("..env");
+    expect(result).toBeNull();
+  });
 });
