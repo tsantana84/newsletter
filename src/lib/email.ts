@@ -5,7 +5,7 @@ import { NewsletterEmail } from "@/templates/newsletter-email";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = "newsletter@yourdomain.com";
+const FROM_EMAIL = "Inference <onboarding@resend.dev>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 const BATCH_SIZE = 50;
 
